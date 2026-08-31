@@ -1,4 +1,4 @@
-  const canvas = document.getElementById('game');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const clickSound = new Audio("data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAA");
 
@@ -94,4 +94,21 @@ function getPos(e){
 
 canvas.onmousedown = canvas.ontouchstart = e=>{
   let pos = getPos(e);
-  dragBus = buses.find(b=>pos.x
+  dragBus = buses.find(b=>pos.x>b.x&&pos.x<b.x+b.w&&pos.y>b.y&&pos.y<b.y+b.h);
+  if(dragBus) clickSound.play();
+}
+canvas.onmousemove = canvas.ontouchmove = e=>{
+  if(!dragBus) return; e.preventDefault();
+  let step = 5;
+  if(dragBus.dir=='right') dragBus.x+=step;
+  if(dragBus.dir=='left') dragBus.x-=step;
+  if(dragBus.dir=='up') dragBus.y-=step;
+  if(dragBus.dir=='down') dragBus.y+=step;
+}
+canvas.onmouseup = canvas.ontouchend = ()=>dragBus=null;
+
+// FUNGSI TOMBOL
+function showHint(){ alert("Tips: Keluarkan bus orange '4' dulu, dia yang paling ngeblok!") }
+function resetLevel(){ location.reload(); }
+function vip(){ alert("Fitur VIP: Buka jalur kuning!") }
+function shop(){ alert("Toko: Beli skin bus baru") }
