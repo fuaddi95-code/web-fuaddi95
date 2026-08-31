@@ -1,160 +1,97 @@
-const http = require('http');
-
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(`
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Tetris Pak Ajat + Suara</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { background: #111; color: white; text-align: center; font-family: Arial; margin: 0; padding: 10px; }
-    canvas { background: #000; border: 3px solid #0f0; }
-    h1 { color: #0f0; }
-    .score { font-size: 24px; margin: 10px; }
-    button { padding: 15px 25px; margin: 5px; font-size: 18px; background: #0f0; border: none; border-radius: 5px; }
-  </style>
-</head>
-<body>
-  <h1>🎮 TETRIS PAK AJAT 🎮</h1>
-  <div class="score">Skor: <span id="score">0</span></div>
-  <canvas id="tetris" width="300" height="600"></canvas>
-  <div>
-    <button onclick="move(-1)">⬅️</button>
-    <button onclick="rotate()">🔄</button>
-    <button onclick="move(1)">➡️</button>
-    <button onclick="drop()">⬇️</button>
-  </div>
-  <p>Klik layar dulu biar suara nyala!</p>
-
-<script>
-// SUARA
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(freq, dur) {
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.frequency.value = freq;
-  gain.gain.value = 0.1;
-  osc.start();
-  osc.stop(audioCtx.currentTime + dur);
-}
-
-const canvas = document.getElementById('tetris');
+  const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-const grid = 30;
-const cols = 10;
-const rows = 20;
-let board = Array(rows).fill().map(() => Array(cols).fill(0));
-let score = 0;
+const clickSound = new Audio("data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAA");
 
-const shapes = [
-  [[1,1,1,1]], [[1,1],[1,1]], [[1,1,0],[0,1,1]],
-  [[0,1,1],[1,1,0]], [[1,1,1],[0,1,0]],
-  [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
+// DATA 25 BUS LEVEL 15 SESUAI GAMBAR
+let buses = [
+  {x:20,y:260,w:80,h:35,color:'#FF5252',dir:'right'}, // merah
+  {x:110,y:260,w:40,h:35,color:'#448AFF',dir:'down'}, // biru
+  {x:200,y:260,w:40,h:35,color:'#FFEB3B',dir:'left'}, // kuning
+  {x:290,y:260,w:40,h:35,color:'#9C27B0',dir:'right'}, // ungu
+  {x:20,y:300,w:40,h:35,color:'#4CAF50',dir:'up'}, // hijau
+  {x:110,y:300,w:120,h:35,color:'#FF9800',dir:'right',text:'4'}, // orange panjang
+  {x:240,y:300,w:40,h:35,color:'#795548',dir:'left'}, // coklat
+  {x:330,y:300,w:40,h:35,color:'#E91E63',dir:'down'}, // pink
+  {x:20,y:340,w:40,h:35,color:'#00BCD4',dir:'right'}, // cyan
+  {x:110,y:340,w:40,h:35,color:'#3F51B5',dir:'up'}, // indigo
+  {x:200,y:340,w:80,h:35,color:'#FF5722',dir:'left'}, // oranye
+  {x:290,y:340,w:40,h:35,color:'#607D8B',dir:'right'}, // abu
+  {x:20,y:380,w:40,h:35,color:'#8BC34A',dir:'down'}, // lime
+  {x:110,y:380,w:40,h:35,color:'#000',dir:'?',mystery:true}, // hitam misteri
+  {x:200,y:380,w:40,h:35,color:'#CDDC39',dir:'left'}, // lemon
+  {x:290,y:380,w:80,h:35,color:'#9E9E9E',dir:'right'}, // abu2
+  {x:20,y:420,w:40,h:35,color:'#F44336',dir:'up'}, // merah tua
+  {x:110,y:420,w:40,h:35,color:'#2196F3',dir:'right'}, // biru muda
+  {x:200,y:420,w:40,h:35,color:'#FFC107',dir:'down'}, // amber
+  {x:290,y:420,w:40,h:35,color:'#673AB7',dir:'left'}, // deep purple
+  {x:20,y:460,w:120,h:35,color:'#009688',dir:'right'}, // teal panjang
+  {x:150,y:460,w:40,h:35,color:'#FF9800',dir:'up'}, // orange
+  {x:240,y:460,w:40,h:35,color:'#3F51B5',dir:'left'}, // biru
+  {x:330,y:460,w:40,h:35,color:'#E91E63',dir:'right'}, // pink
+  {x:150,y:500,w:40,h:35,color:'#4CAF50',dir:'down'} // hijau
 ];
-const colors = ['#00f0f0','#f0f000','#f00000','#00f000','#a000f0','#0000f0','#f0a000'];
 
-let current, x, y, color;
+// DATA CROWD
+let crowds = [
+  {color:'#00E5FF', y:80, speed:1}, {color:'#FF4081', y:100, speed:1.2},
+  {color:'#FFD600', y:120, speed:1}, {color:'#2979FF', y:140, speed:1.3},
+  {color:'#FF9100', y:160, speed:1}, {color:'#8D6E63', y:180, speed:1.1},
+];
+let crowdOffset = 0;
 
-function newPiece() {
-  let r = Math.floor(Math.random() * shapes.length);
-  current = shapes[r];
-  color = colors[r];
-  x = 3;
-  y = 0;
-  if(collision()) { 
-    playSound(100, 0.5);
-    alert('GAME OVER! Skor: ' + score); 
-    board = Array(rows).fill().map(() => Array(cols).fill(0)); 
-    score=0; 
-    document.getElementById('score').innerText = score;
-  }
-}
+function draw(){
+  ctx.clearRect(0,0,400,600);
 
-function collision(nx=x, ny=y, shape=current) {
-  for(let i=0; i<shape.length; i++)
-    for(let j=0; j<shape[i].length; j++)
-      if(shape[i][j] && (board[ny+i]?.[nx+j] !== 0 || ny+i >= rows || nx+j < 0 || nx+j >= cols))
-        return true;
-  return false;
-}
-
-function rotateShape() {
-  return current[0].map((_, i) => current.map(row => row[i]).reverse());
-}
-
-function merge() {
-  for(let i=0; i<current.length; i++)
-    for(let j=0; j<current[i].length; j++)
-      if(current[i][j]) board[y+i][x+j] = colors.indexOf(color)+1;
-}
-
-function clearLines() {
-  for(let i=rows-1; i>=0; i--) {
-    if(board[i].every(cell => cell !== 0)) {
-      board.splice(i,1);
-      board.unshift(Array(cols).fill(0));
-      score += 100;
-      playSound(800, 0.3); // SUARA DAPET SKOR
-      document.getElementById('score').innerText = score;
+  // 1. CROWD JALAN
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,400,250);
+  ctx.fillStyle="red"; ctx.font="bold 22px Arial"; ctx.fillText("HARD LEVEL 1", 120,30);
+  crowds.forEach(c=>{
+    for(let i=0;i<15;i++){
+      ctx.fillStyle=c.color;
+      ctx.beginPath();
+      ctx.arc(30 + ((i*18 + crowdOffset*c.speed) % 350), c.y, 8, 0, Math.PI*2);
+      ctx.fill();
     }
+  });
+  crowdOffset += 0.5;
+
+  // 2. GRID PARKIR
+  ctx.fillStyle="#BDBDBD"; ctx.fillRect(0,250,400,350);
+  for(let i=0;i<8;i++) for(let j=0;j<8;j++){
+    ctx.strokeStyle="#616161"; ctx.strokeRect(20+j*45, 260+i*40, 40, 35);
+  }
+
+  // 3. BUS
+  buses.forEach(b=>{
+    ctx.fillStyle=b.color;
+    ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle="#fff"; ctx.font="bold 18px Arial";
+    let arrow = {up:'↑',down:'↓',left:'←',right:'→'}[b.dir] || '?';
+    ctx.fillText(arrow, b.x+b.w/2-8, b.y+b.h/2+6);
+    if(b.text) {ctx.font="14px Arial"; ctx.fillText(b.text, b.x+5, b.y+15);}
+  });
+
+  checkWin();
+}
+setInterval(draw, 30); // biar crowd jalan
+
+// CEK MENANG
+function checkWin(){
+  let keluar = buses.filter(b => b.x > 400 || b.x < -b.w || b.y > 600 || b.y < 250);
+  if(keluar.length === buses.length){
+    alert("🎉 MENANG! Level Selesai!");
+    buses = []; // stop game
   }
 }
 
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let i=0; i<rows; i++)
-    for(let j=0; j<cols; j++)
-      if(board[i][j]) {
-        ctx.fillStyle = colors[board[i][j]-1];
-        ctx.fillRect(j*grid, i*grid, grid-1, grid-1);
-      }
-  ctx.fillStyle = color;
-  for(let i=0; i<current.length; i++)
-    for(let j=0; j<current[i].length; j++)
-      if(current[i][j]) ctx.fillRect((x+j)*grid, (y+i)*grid, grid-1, grid-1);
+// DRAG + TOUCH
+let dragBus=null;
+function getPos(e){
+  let rect = canvas.getBoundingClientRect();
+  return {x: (e.touches?e.touches[0].clientX:e.clientX)-rect.left,
+          y: (e.touches?e.touches[0].clientY:e.clientY)-rect.top}
 }
 
-function move(dx) { 
-  if(!collision(x+dx, y)) x+=dx; 
-}
-
-function rotate() { 
-  let r=rotateShape(); 
-  if(!collision(x, y, r)) {
-    current=r;
-    playSound(600, 0.1); // SUARA PUTAR
-  }
-}
-
-function drop() { 
-  if(!collision(x, y+1)) y++; 
-  else { 
-    playSound(200, 0.2); // SUARA JATUH
-    merge(); 
-    clearLines(); 
-    newPiece(); 
-  } 
-}
-
-function gameLoop() { drop(); draw(); }
-document.addEventListener('keydown', e => {
-  if(e.key==='ArrowLeft') move(-1);
-  if(e.key==='ArrowRight') move(1);
-  if(e.key==='ArrowDown') drop();
-  if(e.key===' ') rotate();
-});
-
-newPiece();
-setInterval(gameLoop, 500);
-draw();
-</script>
-</body>
-</html>
-  `);
-});
-
-server.listen(3000);
+canvas.onmousedown = canvas.ontouchstart = e=>{
+  let pos = getPos(e);
+  dragBus = buses.find(b=>pos.x
