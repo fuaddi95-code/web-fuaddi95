@@ -1,5 +1,14 @@
 {
-  "scripts": {
-    "start": "node hello.js"
-  }
+  "builds": [
+    {
+      "src": "hello.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "hello.js"
+    }
+  ]
 }
