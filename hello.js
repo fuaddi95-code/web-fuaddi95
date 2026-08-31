@@ -6,7 +6,7 @@ const server = http.createServer((req, res) => {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tetris Pak Ajat</title>
+  <title>Tetris Pak Ajat + Suara</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { background: #111; color: white; text-align: center; font-family: Arial; margin: 0; padding: 10px; }
@@ -26,9 +26,22 @@ const server = http.createServer((req, res) => {
     <button onclick="move(1)">➡️</button>
     <button onclick="drop()">⬇️</button>
   </div>
-  <p>Keyboard: Panah Kiri/Kanan/Bawah | Spasi: Putar</p>
+  <p>Klik layar dulu biar suara nyala!</p>
 
 <script>
+// SUARA
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(freq, dur) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.frequency.value = freq;
+  gain.gain.value = 0.1;
+  osc.start();
+  osc.stop(audioCtx.currentTime + dur);
+}
+
 const canvas = document.getElementById('tetris');
 const ctx = canvas.getContext('2d');
 const grid = 30;
@@ -38,24 +51,27 @@ let board = Array(rows).fill().map(() => Array(cols).fill(0));
 let score = 0;
 
 const shapes = [
-  [[1,1,1,1]], // I
-  [[1,1],[1,1]], // O
-  [[1,1,0],[0,1,1]], // Z
-  [[0,1,1],[1,1,0]], // S
-  [[1,1,1],[0,1,0]], // T
-  [[1,1,1],[1,0,0]], // J
-  [[1,1,1],[0,0,1]]  // L
+  [[1,1,1,1]], [[1,1],[1,1]], [[1,1,0],[0,1,1]],
+  [[0,1,1],[1,1,0]], [[1,1,1],[0,1,0]],
+  [[1,1,1],[1,0,0]], [[1,1,1],[0,0,1]]
 ];
 const colors = ['#00f0f0','#f0f000','#f00000','#00f000','#a000f0','#0000f0','#f0a000'];
 
-let current, x, y;
+let current, x, y, color;
 
 function newPiece() {
   let r = Math.floor(Math.random() * shapes.length);
   current = shapes[r];
+  color = colors[r];
   x = 3;
   y = 0;
-  if(collision()) { alert('GAME OVER! Skor: ' + score); board = Array(rows).fill().map(() => Array(cols).fill(0)); score=0; }
+  if(collision()) { 
+    playSound(100, 0.5);
+    alert('GAME OVER! Skor: ' + score); 
+    board = Array(rows).fill().map(() => Array(cols).fill(0)); 
+    score=0; 
+    document.getElementById('score').innerText = score;
+  }
 }
 
 function collision(nx=x, ny=y, shape=current) {
@@ -67,8 +83,7 @@ function collision(nx=x, ny=y, shape=current) {
 }
 
 function rotateShape() {
-  let rotated = current[0].map((_, i) => current.map(row => row[i]).reverse());
-  return rotated;
+  return current[0].map((_, i) => current.map(row => row[i]).reverse());
 }
 
 function merge() {
@@ -83,12 +98,12 @@ function clearLines() {
       board.splice(i,1);
       board.unshift(Array(cols).fill(0));
       score += 100;
+      playSound(800, 0.3); // SUARA DAPET SKOR
       document.getElementById('score').innerText = score;
     }
   }
 }
 
-let color;
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(let i=0; i<rows; i++)
@@ -97,16 +112,33 @@ function draw() {
         ctx.fillStyle = colors[board[i][j]-1];
         ctx.fillRect(j*grid, i*grid, grid-1, grid-1);
       }
-  color = colors[Math.floor(Math.random()*colors.length)];
   ctx.fillStyle = color;
   for(let i=0; i<current.length; i++)
     for(let j=0; j<current[i].length; j++)
       if(current[i][j]) ctx.fillRect((x+j)*grid, (y+i)*grid, grid-1, grid-1);
 }
 
-function move(dx) { if(!collision(x+dx, y)) x+=dx; }
-function rotate() { let r=rotateShape(); if(!collision(x, y, r)) current=r; }
-function drop() { if(!collision(x, y+1)) y++; else { merge(); clearLines(); newPiece(); } }
+function move(dx) { 
+  if(!collision(x+dx, y)) x+=dx; 
+}
+
+function rotate() { 
+  let r=rotateShape(); 
+  if(!collision(x, y, r)) {
+    current=r;
+    playSound(600, 0.1); // SUARA PUTAR
+  }
+}
+
+function drop() { 
+  if(!collision(x, y+1)) y++; 
+  else { 
+    playSound(200, 0.2); // SUARA JATUH
+    merge(); 
+    clearLines(); 
+    newPiece(); 
+  } 
+}
 
 function gameLoop() { drop(); draw(); }
 document.addEventListener('keydown', e => {
