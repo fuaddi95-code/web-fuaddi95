@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toko Online - Kopi Arabika</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #f8f9fa; }
+    .container { max-width: 900px; margin: 30px auto; padding: 20px; background: white; border-radius: 10px; }
+    .product { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .product img { width: 100%; border-radius: 10px; }
+    .product h1 { color: #8B4513; font-size: 2em; }
+    .price { font-size: 1.8em; color: #e63946; font-weight: bold; margin: 10px 0; }
+    .btn { background: #25D366; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer; width: 100%; margin-top: 15px; }
+    .btn:hover { background: #1ebe5b; }
+    .features li { margin: 10px 0; }
+    @media(max-width: 768px){ .product { grid-template-columns: 1fr; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="product">
+      <div>
+        <img src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=500" alt="Kopi Arabika">
+      </div>
+      <div>
+        <h1>Kopi Arabika Premium 250gr</h1>
+        <p>⭐⭐⭐⭐⭐ 4.9/5 - 120 Ulasan</p>
+        <p class="price">Rp 89.000</p>
+        <p>Kopi Arabika pilihan dari dataran tinggi Gayo. Aroma kuat, rasa lembut, cocok untuk espresso & manual brew.</p>
+        
+        <h3 style="margin-top:20px;">Keunggulan:</h3>
+        <ul class="features">
+          <li>✅ Biji kopi pilihan grade 1</li>
+          <li>✅ Sangrai medium - tidak pahit</li>
+          <li>✅ Packing kedap udara + ziplock</li>
+          <li>✅ Gratis ongkir Jabodetabek</li>
+        </ul>
+
+        <button class="btn" onclick="window.open('https://wa.me/6281234567890?text=Halo, saya mau pesan Kopi Arabika 250gr')">
+          Pesan via WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
